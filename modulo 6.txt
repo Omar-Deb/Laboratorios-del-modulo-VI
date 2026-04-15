@@ -87,6 +87,8 @@ alert tcp any any -> $HOME_NET 22 (msg:"[ALERTA] Intento de conexion SSH"; sid:1
 
 # 4. Alerta para FTP (Puerto 21)
 alert tcp any any -> $HOME_NET 21 (msg:"[ALERTA] Intento de conexion FTP"; sid:1000004; rev:1;)
+
+
 ## Práctica 4: Doble Factor de Autenticación (MFA) para SSH
 Aumento de la seguridad del acceso remoto mediante el uso de Google Authenticator (TOTP).
 ### Instalación y Configuración de PAM
