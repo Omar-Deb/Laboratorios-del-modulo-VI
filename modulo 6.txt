@@ -1,0 +1,108 @@
+﻿## Práctica 1: Criptografía Simétrica con GPG2
+Uso de GnuPG para el cifrado y descifrado de información sensible mediante algoritmos simétricos.
+### Comandos de la Práctica
+Bash
+sudo apt install gnupg2 -yy                   # Instala la herramienta GnuPG2 para cifrado
+sudo mkdir Cifrado                            # Crea un directorio dedicado para las pruebas
+cd Cifrado/                                   # Entra al directorio
+sudo touch carta_secreta.txt                  # Crea el archivo de texto plano
+sudo nano carta_secreta.txt                   # Escribe el mensaje confidencial
+cat carta_secreta.txt                         # Verifica el contenido del mensaje
+sudo gpg2 --symmetric carta_secreta.txt       # Cifra el archivo (solicita contraseña para generar .gpg)
+cat carta_secreta.txt.gpg                     # Intenta leer el archivo (se verá contenido cifrado/binario)
+sudo gpg2 --decrypt carta_secreta.txt.gpg     # Descifra y muestra el contenido en la terminal
+# Descifra y guarda el resultado en un nuevo archivo (output)
+sudo gpg2 --output carta_descifrada.txt --decrypt carta_secreta.txt.gpg 
+
+
+________________
+
+
+## Práctica 2: Gestión de Firewalls (Iptables y UFW)
+Configuración de reglas de filtrado de paquetes para bloquear puertos críticos (21-FTP, 22-SSH, 80-HTTP).
+### Bloqueo con Iptables (Nivel de Kernel)
+Bash
+sudo iptables -A INPUT -p tcp --dport 21 -j DROP    # Bloquea todo el tráfico entrante al puerto 21
+sudo iptables -A INPUT -p tcp --dport 22 -j DROP    # Bloquea el acceso por SSH (Cuidado aquí)
+sudo iptables -A INPUT -p tcp --dport 80 -j DROP    # Bloquea el tráfico web
+sudo iptables -L                                    # Lista todas las reglas activas de iptables
+sudo iptables -D INPUT -p tcp --dport 80 -j DROP    # Elimina la regla de bloqueo del puerto 80
+
+
+### Bloqueo con UFW (Uncomplicated Firewall)
+Bash
+sudo ufw status                               # Verifica si el firewall está activo
+sudo ufw enable                               # Activa el firewall UFW
+sudo ufw deny 22                              # Deniega el acceso al puerto 22
+sudo ufw deny 21                              # Deniega el acceso al puerto 21
+sudo ufw status numbered                      # Muestra las reglas con un índice numérico
+sudo ufw allow 80                             # Permite explícitamente el tráfico web
+sudo ufw allow 22                             # Permite el tráfico SSH nuevamente
+
+
+________________
+
+
+## Práctica 3: IDS - Sistema de Detección de Intrusos (Snort)
+Configuración de Snort para monitorear el tráfico de red en tiempo real y detectar anomalías basadas en reglas.
+### Configuración y Ejecución
+Bash
+sudo apt install snort -y                     # Instala Snort (requiere configurar el rango de red)
+sudo nano /etc/snort/snort.conf               # Archivo de configuración global (variables de red)
+sudo nano /etc/snort/rules/local.rules        # Archivo para crear reglas personalizadas (alert icmp...)
+# Ejecución en modo consola para monitorear la interfaz ens33:
+sudo snort -A console -q -c /etc/snort/snort.conf -i ens33
+
+
+Nota: El parámetro -A console envía las alertas a la pantalla, -q es modo silencioso (menos ruido de sistema) y -c indica la ruta del archivo de configuración1. Modificación de snort.conf
+Primero, debemos asegurarnos de que Snort sepa cuál es tu red local y que lea tus reglas personalizadas.
+Definir la Red: Busca la sección de variables (paso 1) y cambia any por tu segmento de red real.
+Bash
+# Cambia esto:
+ipvar HOME_NET any
+
+
+# Por esto (ajustado a tu red de la práctica):
+ipvar HOME_NET 192.168.64.0/24
+1. Incluir tus reglas: Ve casi al final del archivo (sección de "includes") y asegúrate de que esta línea esté descomentada:
+Bash
+include $RULE_PATH/local.rules
+2. ________________
+
+
+2. Creación de Reglas en local.rules
+Abre el archivo con sudo nano /etc/snort/rules/local.rules. Aquí definiremos las 4 alertas solicitadas. Cada una lleva un SID (Snort ID) único a partir del 1,000,001 (que es el rango para reglas de usuario).
+Bash
+# 1. Alerta para ICMP (Ping)
+alert icmp any any -> $HOME_NET any (msg:"[ALERTA] Ping (ICMP) detectado"; sid:1000001; rev:1;)
+
+
+# 2. Alerta para HTTP (Puerto 80)
+alert tcp any any -> $HOME_NET 80 (msg:"[ALERTA] Trafico Web HTTP detectado"; sid:1000002; rev:1;)
+
+
+# 3. Alerta para SSH (Puerto 22)
+alert tcp any any -> $HOME_NET 22 (msg:"[ALERTA] Intento de conexion SSH"; sid:1000003; rev:1;)
+
+
+# 4. Alerta para FTP (Puerto 21)
+alert tcp any any -> $HOME_NET 21 (msg:"[ALERTA] Intento de conexion FTP"; sid:1000004; rev:1;)
+## Práctica 4: Doble Factor de Autenticación (MFA) para SSH
+Aumento de la seguridad del acceso remoto mediante el uso de Google Authenticator (TOTP).
+### Instalación y Configuración de PAM
+Bash
+sudo apt install openssh-server               # Asegura que el servicio SSH esté instalado
+sudo apt install libpam-google-authenticator  # Instala el módulo PAM para autenticación de Google
+google-authenticator                          # Inicia la configuración (genera código QR y llaves de emergencia)
+
+
+# Integración con el Sistema:
+sudo nano /etc/pam.d/sshd                     # Añade: auth required pam_google_authenticator.so
+sudo nano /etc/ssh/sshd_config                # Cambia: KbdInteractiveAuthentication yes
+sudo systemctl restart ssh                    # Reinicia el servicio para aplicar el MFA
+
+
+________________
+
+
+#
